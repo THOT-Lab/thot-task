@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export default function TaskRow({
   task,
@@ -9,11 +9,15 @@ export default function TaskRow({
   onAssign,
   onTag,
   onDelete,
-  onReorder,
+  onDragStartTask,
+  onDragEndTask,
+  onDropTask,
 }) {
   const [title, setTitle] = useState(task.title)
   const [creatingTag, setCreatingTag] = useState(false)
   const [newTag, setNewTag] = useState('')
+  const [isOver, setIsOver] = useState(false)
+  const liRef = useRef(null)
 
   useEffect(() => {
     setTitle(task.title)
@@ -41,26 +45,41 @@ export default function TaskRow({
     if (clean && clean !== (task.tag || '')) onTag(task, clean)
   }
 
+  const handleDragStart = (e) => {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', task.id)
+    // Fantôme de glissement = la ligne entière
+    if (liRef.current) e.dataTransfer.setDragImage(liRef.current, 24, 16)
+    onDragStartTask?.(task)
+  }
+
   return (
-    <li className={`task-row ${task.is_done ? 'done' : ''}`}>
-      <span className="reorder">
-        <button
-          className="reorder-btn"
-          onClick={() => onReorder(task, 'up')}
-          aria-label="Monter"
-          title="Monter (priorité)"
-        >
-          ▲
-        </button>
-        <button
-          className="reorder-btn"
-          onClick={() => onReorder(task, 'down')}
-          aria-label="Descendre"
-          title="Descendre (priorité)"
-        >
-          ▼
-        </button>
+    <li
+      ref={liRef}
+      className={`task-row ${task.is_done ? 'done' : ''} ${isOver ? 'drag-over' : ''}`}
+      onDragOver={(e) => {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+        if (!isOver) setIsOver(true)
+      }}
+      onDragLeave={() => setIsOver(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        setIsOver(false)
+        onDropTask?.(task)
+      }}
+    >
+      <span
+        className="drag-handle"
+        draggable
+        onDragStart={handleDragStart}
+        onDragEnd={() => onDragEndTask?.()}
+        title="Glisser pour déplacer (priorité)"
+        aria-label="Déplacer la tâche"
+      >
+        ⠿
       </span>
+
       <button
         className={`check ${task.is_done ? 'checked' : ''}`}
         onClick={() => onToggle(task)}

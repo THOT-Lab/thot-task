@@ -28,6 +28,7 @@ export default function ProjectPage() {
   const [opError, setOpError] = useState('')
   const [notesDraft, setNotesDraft] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
+  const [draggedId, setDraggedId] = useState(null)
 
   const loadProject = useCallback(async () => {
     const { data } = await supabase.from('projects').select('*').eq('id', id).maybeSingle()
@@ -44,7 +45,6 @@ export default function ProjectPage() {
       .from('tasks')
       .select('*')
       .eq('project_id', id)
-      .order('is_done', { ascending: true })
       .order('position', { ascending: true })
       .order('created_at', { ascending: true })
     setTasks(data ?? [])
@@ -140,14 +140,18 @@ export default function ProjectPage() {
       return
     return mutate(supabase.from('tasks').delete().eq('id', t.id))
   }
-  // Monter / descendre une tâche pour gérer sa priorité.
-  const reorderTask = async (task, dir) => {
+  // Glisser-déposer pour réordonner les tâches (priorité). On dépose la tâche
+  // tirée à l'emplacement de la tâche survolée, puis on persiste les positions.
+  const onDropTask = async (target) => {
+    const srcId = draggedId
+    setDraggedId(null)
+    if (!srcId || srcId === target.id) return
     const ordered = [...tasks]
-    const idx = ordered.findIndex((t) => t.id === task.id)
-    const swapIdx = dir === 'up' ? idx - 1 : idx + 1
-    if (swapIdx < 0 || swapIdx >= ordered.length) return
-    if (ordered[swapIdx].is_done !== task.is_done) return // on ne mélange pas faites/à faire
-    ;[ordered[idx], ordered[swapIdx]] = [ordered[swapIdx], ordered[idx]]
+    const from = ordered.findIndex((t) => t.id === srcId)
+    const to = ordered.findIndex((t) => t.id === target.id)
+    if (from < 0 || to < 0) return
+    const [moved] = ordered.splice(from, 1)
+    ordered.splice(to, 0, moved)
     setTasks(ordered) // retour visuel immédiat
     const updates = ordered
       .map((t, i) => (t.position === i ? null : { id: t.id, i }))
@@ -297,7 +301,9 @@ export default function ProjectPage() {
               onAssign={assignTask}
               onTag={tagTask}
               onDelete={deleteTask}
-              onReorder={reorderTask}
+              onDragStartTask={(t) => setDraggedId(t.id)}
+              onDragEndTask={() => setDraggedId(null)}
+              onDropTask={onDropTask}
             />
           ))}
           {visibleTasks.length === 0 && (

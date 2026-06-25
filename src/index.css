@@ -678,23 +678,20 @@ select:focus {
 .task-row:hover {
   background: rgba(110, 76, 255, 0.04);
 }
-.reorder {
-  display: flex;
-  flex-direction: column;
+.drag-handle {
   flex: none;
-  justify-content: center;
-}
-.reorder-btn {
-  border: none;
-  background: transparent;
+  cursor: move; /* curseur "4 flèches" */
   color: #c6cadb;
-  cursor: pointer;
-  font-size: 0.56rem;
+  font-size: 1rem;
   line-height: 1;
-  padding: 1px 2px;
+  padding: 0 2px;
+  user-select: none;
 }
-.reorder-btn:hover {
+.drag-handle:hover {
   color: var(--accent);
+}
+.task-row.drag-over {
+  box-shadow: inset 0 2px 0 0 var(--accent);
 }
 .list-toolbar .t-reorder {
   width: 16px;
