@@ -30,20 +30,18 @@ export async function addMemberByEmail(project, rawEmail) {
   }
 
   // Notification email — best-effort, ne bloque pas l'ajout.
-  notify(project, email, status).catch(() => {})
+  notify(project, email).catch(() => {})
   return { status }
 }
 
-// Pour un NOUVEAU partenaire (pas encore de compte), on déclenche l'envoi d'un
-// email "lien magique" par Supabase : il clique, il est connecté et voit son projet.
-// Pour un membre déjà inscrit, pas d'email (il a déjà accès).
-async function notify(project, email, status) {
-  if (status !== 'invited') return
+// On envoie un email "lien magique" à TOUT partenaire ajouté (nouveau ou déjà inscrit).
+// Le lien le connecte et le redirige DIRECTEMENT sur le projet concerné.
+async function notify(project, email) {
   await supabase.auth.signInWithOtp({
     email,
     options: {
       shouldCreateUser: true,
-      emailRedirectTo: 'https://thot-lab.github.io/thot-task/',
+      emailRedirectTo: `https://thot-lab.github.io/thot-task/?project=${project.id}`,
       data: { invited_to: project.name },
     },
   })

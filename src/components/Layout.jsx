@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -10,6 +10,16 @@ function Shell() {
   const { user, profile, isAdmin, signOut, refreshProfile } = useAuth()
   const navigate = useNavigate()
   const [showProfile, setShowProfile] = useState(false)
+
+  // Arrivée via un lien magique "…?project=ID" → on ouvre directement le projet.
+  useEffect(() => {
+    const pid = new URLSearchParams(window.location.search).get('project')
+    if (pid) {
+      navigate(`/project/${pid}`)
+      window.history.replaceState({}, '', window.location.pathname + window.location.hash)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSignOut = async () => {
     await signOut()
