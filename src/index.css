@@ -603,7 +603,7 @@ select:focus {
 .comment-area {
   width: 100%;
   min-height: 90px;
-  max-height: 70vh; /* grandit jusqu'à ~la fenêtre, puis devient déroulant */
+  max-height: calc(31.5em + 1.5rem + 2px); /* 21 lignes max, puis déroulant */
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.75rem 0.85rem;
