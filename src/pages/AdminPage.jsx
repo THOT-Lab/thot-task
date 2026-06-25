@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -11,6 +11,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
 
   const load = async () => {
+    // En tant qu'admin, la RLS autorise la lecture de TOUS les profils et projets.
     const { data: p } = await supabase
       .from('profiles')
       .select('*')
@@ -43,7 +44,6 @@ export default function AdminPage() {
     ])
     const esc = (v) => `"${String(v).replace(/"/g, '""')}"`
     const csv = [headers, ...rows].map((r) => r.map(esc).join(',')).join('\r\n')
-    // BOM ﻿ pour que les accents s'affichent bien dans Excel
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -53,6 +53,16 @@ export default function AdminPage() {
     URL.revokeObjectURL(url)
   }
 
+  const projectsByUser = useMemo(() => {
+    const m = new Map()
+    for (const p of projects) {
+      const key = p.created_by || 'none'
+      if (!m.has(key)) m.set(key, [])
+      m.get(key).push(p)
+    }
+    return m
+  }, [projects])
+
   if (loading) return <div className="page muted">Chargement…</div>
 
   return (
@@ -60,9 +70,72 @@ export default function AdminPage() {
       <div className="page-head">
         <div>
           <h1>Administration</h1>
-          <p className="muted">Vue globale des utilisateurs et des projets.</p>
+          <p className="muted">Tableau de bord global — réservé à l'administrateur.</p>
         </div>
       </div>
+
+      <div className="stat-row">
+        <div className="stat-card">
+          <div className="stat-num">{profiles.length}</div>
+          <div className="muted">Utilisateurs inscrits</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-num">{projects.length}</div>
+          <div className="muted">Projets créés</div>
+        </div>
+      </div>
+
+      <section>
+        <h2 className="section-title">Projets par utilisateur</h2>
+        <div className="admin-users">
+          {profiles.map((u) => {
+            const list = projectsByUser.get(u.id) || []
+            return (
+              <div key={u.id} className="admin-user-block">
+                <div className="admin-user-head">
+                  <strong>{u.full_name || u.email}</strong>
+                  <span className="muted small">
+                    {u.email} · {list.length} projet(s)
+                    {u.role === 'admin' && <span className="chip chip-admin tiny"> admin</span>}
+                  </span>
+                </div>
+                {list.length > 0 && (
+                  <div className="admin-project-row">
+                    {list.map((p) => (
+                      <button
+                        key={p.id}
+                        className="chip chip-link"
+                        onClick={() => navigate(`/project/${p.id}`)}
+                      >
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {(projectsByUser.get('none') || []).length > 0 && (
+            <div className="admin-user-block">
+              <div className="admin-user-head">
+                <strong>Sans créateur</strong>
+              </div>
+              <div className="admin-project-row">
+                {projectsByUser.get('none').map((p) => (
+                  <button
+                    key={p.id}
+                    className="chip chip-link"
+                    onClick={() => navigate(`/project/${p.id}`)}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
       <section>
         <div className="section-head">
@@ -75,7 +148,7 @@ export default function AdminPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Nom</th>
+                <th>Pseudo</th>
                 <th>Email</th>
                 <th>Rôle</th>
                 <th></th>
@@ -107,22 +180,6 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
-        </div>
-      </section>
-
-      <section>
-        <h2 className="section-title">Projets ({projects.length})</h2>
-        <div className="project-grid">
-          {projects.map((p) => (
-            <button
-              key={p.id}
-              className="project-card"
-              onClick={() => navigate(`/project/${p.id}`)}
-            >
-              <h3>{p.name}</h3>
-              {p.description && <p className="muted card-desc">{p.description}</p>}
-            </button>
-          ))}
         </div>
       </section>
     </div>

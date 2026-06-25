@@ -119,7 +119,7 @@ begin
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
-    case when lower(new.email) = lower('laurentpacoud@gmail.com')
+    case when lower(new.email) = lower('l.pacoud@thot-consult.com')
          then 'admin' else 'member' end
   )
   on conflict (id) do nothing;

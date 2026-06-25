@@ -10,14 +10,25 @@ export function ProjectsProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   const reload = useCallback(async () => {
-    // RLS ne renvoie que les projets dont l'utilisateur est membre (l'admin voit tout).
+    const userId = session?.user?.id
+    if (!userId) {
+      setProjects([])
+      setLoading(false)
+      return
+    }
+    // On liste UNIQUEMENT les projets dont l'utilisateur est membre (créés ou invité),
+    // y compris pour l'admin : sa vue globale est réservée à la page Admin.
     const { data, error } = await supabase
-      .from('projects')
-      .select('*')
-      .order('created_at', { ascending: true })
-    if (!error) setProjects(data ?? [])
+      .from('project_members')
+      .select('project:projects(*)')
+      .eq('user_id', userId)
+    if (!error) {
+      const list = (data ?? []).map((r) => r.project).filter(Boolean)
+      list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      setProjects(list)
+    }
     setLoading(false)
-  }, [])
+  }, [session])
 
   useEffect(() => {
     if (session) reload()

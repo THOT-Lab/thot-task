@@ -952,6 +952,56 @@ select:focus {
   font-size: 0.9rem;
 }
 
+/* ---------- Admin : stats + projets par utilisateur ---------- */
+.stat-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.stat-card {
+  flex: 1;
+  min-width: 160px;
+  background: var(--surface-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.2rem 1.4rem;
+  box-shadow: var(--shadow-soft);
+}
+.stat-num {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--accent-dark);
+  line-height: 1;
+  margin-bottom: 0.3rem;
+}
+.admin-users {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.admin-user-block {
+  background: var(--surface-glass);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.7rem 0.9rem;
+  box-shadow: var(--shadow-soft);
+}
+.admin-user-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.admin-project-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
 /* ---------- Tables (admin) ---------- */
 .table-card {
   background: var(--surface-glass);
