@@ -181,6 +181,15 @@ export default function ProjectPage() {
     [tasks]
   )
 
+  // Rang général (position absolue dans la liste complète), conservé même filtré.
+  const rankById = useMemo(() => {
+    const m = {}
+    tasks.forEach((t, i) => {
+      m[t.id] = i + 1
+    })
+    return m
+  }, [tasks])
+
   const visibleTasks = useMemo(
     () =>
       tasks.filter(
@@ -302,10 +311,10 @@ export default function ProjectPage() {
         </div>
 
         <ul className="task-list">
-          {visibleTasks.map((t, i) => (
+          {visibleTasks.map((t) => (
             <TaskRow
               key={t.id}
-              num={i + 1}
+              num={rankById[t.id]}
               task={t}
               members={members}
               tagOptions={tagOptions}
