@@ -268,6 +268,7 @@ export default function ProjectPage() {
           </div>
         )}
         <div className="list-toolbar">
+          <span className="t-num" />
           <span className="t-reorder" />
           <span className="t-check" />
           <span className="t-title muted small">Tâche</span>
@@ -301,9 +302,10 @@ export default function ProjectPage() {
         </div>
 
         <ul className="task-list">
-          {visibleTasks.map((t) => (
+          {visibleTasks.map((t, i) => (
             <TaskRow
               key={t.id}
+              num={i + 1}
               task={t}
               members={members}
               tagOptions={tagOptions}

@@ -680,6 +680,19 @@ select:focus {
 .task-row:hover {
   background: rgba(110, 76, 255, 0.04);
 }
+.task-num {
+  flex: none;
+  width: 20px;
+  text-align: right;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+.list-toolbar .t-num {
+  width: 20px;
+  flex: none;
+}
 .drag-handle {
   flex: none;
   cursor: move; /* curseur "4 flèches" */

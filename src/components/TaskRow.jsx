@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 export default function TaskRow({
+  num,
   task,
   members,
   tagOptions = [],
@@ -80,6 +81,8 @@ export default function TaskRow({
         onDropTask?.(task)
       }}
     >
+      <span className="task-num">{num}</span>
+
       <span
         className="drag-handle"
         draggable
