@@ -602,7 +602,8 @@ select:focus {
 }
 .comment-area {
   width: 100%;
-  min-height: 120px;
+  min-height: 90px;
+  max-height: 70vh; /* grandit jusqu'à ~la fenêtre, puis devient déroulant */
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.75rem 0.85rem;
@@ -611,7 +612,8 @@ select:focus {
   line-height: 1.5;
   background: rgba(255, 255, 255, 0.6);
   color: var(--text);
-  resize: vertical;
+  resize: none;
+  overflow-y: auto;
   outline: none;
 }
 .comment-area:focus {

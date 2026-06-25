@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -29,6 +29,13 @@ export default function ProjectPage() {
   const [notesDraft, setNotesDraft] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
   const [draggedId, setDraggedId] = useState(null)
+  const commentRef = useRef(null)
+
+  const growComment = (el) => {
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }
 
   const loadProject = useCallback(async () => {
     const { data } = await supabase.from('projects').select('*').eq('id', id).maybeSingle()
@@ -75,6 +82,10 @@ export default function ProjectPage() {
     setNotesDraft(project?.notes || '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id])
+
+  useEffect(() => {
+    growComment(commentRef.current)
+  }, [notesDraft])
 
   // --- Projet ---
   const saveName = async () => {
@@ -322,9 +333,13 @@ export default function ProjectPage() {
           {notesSaving && <span className="muted small">enregistrement…</span>}
         </div>
         <textarea
+          ref={commentRef}
           className="comment-area"
           value={notesDraft}
-          onChange={(e) => setNotesDraft(e.target.value)}
+          onChange={(e) => {
+            setNotesDraft(e.target.value)
+            growComment(e.target)
+          }}
           onBlur={saveNotes}
           placeholder="Notes et commentaires communs au projet… (enregistré automatiquement en quittant le champ)"
         />
