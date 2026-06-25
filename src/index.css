@@ -569,10 +569,10 @@ select:focus {
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 0;
-  text-align: left;
-  padding-left: 0.1rem;
+  text-align: right;
+  padding-right: 0.1rem;
 }
 .partner-mini {
   font-size: 0.78rem;
@@ -677,6 +677,28 @@ select:focus {
 }
 .task-row:hover {
   background: rgba(110, 76, 255, 0.04);
+}
+.reorder {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  justify-content: center;
+}
+.reorder-btn {
+  border: none;
+  background: transparent;
+  color: #c6cadb;
+  cursor: pointer;
+  font-size: 0.56rem;
+  line-height: 1;
+  padding: 1px 2px;
+}
+.reorder-btn:hover {
+  color: var(--accent);
+}
+.list-toolbar .t-reorder {
+  width: 16px;
+  flex: none;
 }
 .check {
   flex: none;

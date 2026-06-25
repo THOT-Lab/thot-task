@@ -9,6 +9,7 @@ export default function TaskRow({
   onAssign,
   onTag,
   onDelete,
+  onReorder,
 }) {
   const [title, setTitle] = useState(task.title)
   const [creatingTag, setCreatingTag] = useState(false)
@@ -42,6 +43,24 @@ export default function TaskRow({
 
   return (
     <li className={`task-row ${task.is_done ? 'done' : ''}`}>
+      <span className="reorder">
+        <button
+          className="reorder-btn"
+          onClick={() => onReorder(task, 'up')}
+          aria-label="Monter"
+          title="Monter (priorité)"
+        >
+          ▲
+        </button>
+        <button
+          className="reorder-btn"
+          onClick={() => onReorder(task, 'down')}
+          aria-label="Descendre"
+          title="Descendre (priorité)"
+        >
+          ▼
+        </button>
+      </span>
       <button
         className={`check ${task.is_done ? 'checked' : ''}`}
         onClick={() => onToggle(task)}

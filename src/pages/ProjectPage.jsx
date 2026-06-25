@@ -45,6 +45,7 @@ export default function ProjectPage() {
       .select('*')
       .eq('project_id', id)
       .order('is_done', { ascending: true })
+      .order('position', { ascending: true })
       .order('created_at', { ascending: true })
     setTasks(data ?? [])
   }, [id])
@@ -138,6 +139,23 @@ export default function ProjectPage() {
     if (!confirm("Supprimer définitivement cette tâche ? (Pour garder l'historique, coche-la plutôt.)"))
       return
     return mutate(supabase.from('tasks').delete().eq('id', t.id))
+  }
+  // Monter / descendre une tâche pour gérer sa priorité.
+  const reorderTask = async (task, dir) => {
+    const ordered = [...tasks]
+    const idx = ordered.findIndex((t) => t.id === task.id)
+    const swapIdx = dir === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= ordered.length) return
+    if (ordered[swapIdx].is_done !== task.is_done) return // on ne mélange pas faites/à faire
+    ;[ordered[idx], ordered[swapIdx]] = [ordered[swapIdx], ordered[idx]]
+    setTasks(ordered) // retour visuel immédiat
+    const updates = ordered
+      .map((t, i) => (t.position === i ? null : { id: t.id, i }))
+      .filter(Boolean)
+    await Promise.all(
+      updates.map((u) => supabase.from('tasks').update({ position: u.i }).eq('id', u.id))
+    )
+    loadTasks()
   }
 
   const tagOptions = useMemo(
@@ -235,6 +253,7 @@ export default function ProjectPage() {
           </div>
         )}
         <div className="list-toolbar">
+          <span className="t-reorder" />
           <span className="t-check" />
           <span className="t-title muted small">Tâche</span>
           <select
@@ -278,6 +297,7 @@ export default function ProjectPage() {
               onAssign={assignTask}
               onTag={tagTask}
               onDelete={deleteTask}
+              onReorder={reorderTask}
             />
           ))}
           {visibleTasks.length === 0 && (
