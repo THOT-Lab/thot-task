@@ -29,14 +29,23 @@ export async function addMemberByEmail(project, rawEmail) {
     status = 'invited'
   }
 
-  // Notification email — ne bloque pas l'opération si l'Edge Function n'est pas déployée.
+  // Notification email — best-effort, ne bloque pas l'ajout.
   notify(project, email, status).catch(() => {})
   return { status }
 }
 
+// Pour un NOUVEAU partenaire (pas encore de compte), on déclenche l'envoi d'un
+// email "lien magique" par Supabase : il clique, il est connecté et voit son projet.
+// Pour un membre déjà inscrit, pas d'email (il a déjà accès).
 async function notify(project, email, status) {
-  await supabase.functions.invoke('notify-member', {
-    body: { email, projectName: project.name, status },
+  if (status !== 'invited') return
+  await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: true,
+      emailRedirectTo: 'https://thot-lab.github.io/thot-task/',
+      data: { invited_to: project.name },
+    },
   })
 }
 

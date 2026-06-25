@@ -76,21 +76,32 @@ function Shell() {
 
 function ProfileModal({ userId, current, onClose, onSaved }) {
   const [pseudo, setPseudo] = useState(current)
+  const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
 
   const save = async (e) => {
     e.preventDefault()
     const v = pseudo.trim()
     if (!v) return
     setBusy(true)
+    setErr('')
     await supabase.from('profiles').update({ full_name: v }).eq('id', userId)
+    if (password) {
+      const { error } = await supabase.auth.updateUser({ password })
+      if (error) {
+        setBusy(false)
+        setErr(error.message)
+        return
+      }
+    }
     await onSaved()
     setBusy(false)
     onClose()
   }
 
   return (
-    <Modal title="Mon pseudo" onClose={onClose}>
+    <Modal title="Mon profil" onClose={onClose}>
       <form onSubmit={save} className="stack">
         <label>
           <span>Pseudo (affiché dans « In charge »)</span>
@@ -101,6 +112,18 @@ function ProfileModal({ userId, current, onClose, onSaved }) {
             placeholder="Ex. Lolo, Laurent, Capitaine…"
           />
         </label>
+        <label>
+          <span>Mot de passe (laisser vide pour ne pas changer)</span>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Définir / changer mon mot de passe"
+            minLength={6}
+            autoComplete="new-password"
+          />
+        </label>
+        {err && <div className="alert alert-error">{err}</div>}
         <div className="modal-foot">
           <button type="button" className="btn btn-ghost" onClick={onClose}>
             Annuler
