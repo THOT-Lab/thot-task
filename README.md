@@ -1,9 +1,12 @@
-# THOT Tasks
+# THOT Task
+
+### 🌐 Site en ligne : **[thot-lab.github.io/thot-task](https://thot-lab.github.io/thot-task/)**
 
 Task manager partagé : projets multiples, membres par projet, listes de tâches avec
-groupes, assignation (« in charge ») et historique (les tâches cochées restent barrées).
+tags, assignation (« in charge »), commentaire de projet et historique (les tâches
+cochées restent barrées).
 
-- **Front** : React + Vite (déployable sur GitHub Pages)
+- **Front** : React + Vite (déployé sur GitHub Pages)
 - **Back** : Supabase (auth email/mot de passe + base Postgres + RLS)
 
 ---
