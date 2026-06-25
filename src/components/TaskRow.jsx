@@ -18,10 +18,21 @@ export default function TaskRow({
   const [newTag, setNewTag] = useState('')
   const [isOver, setIsOver] = useState(false)
   const liRef = useRef(null)
+  const taRef = useRef(null)
+
+  const autoGrow = (el) => {
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }
 
   useEffect(() => {
     setTitle(task.title)
   }, [task.title])
+
+  useEffect(() => {
+    autoGrow(taRef.current)
+  }, [title])
 
   const saveTitle = () => {
     const v = title.trim()
@@ -89,13 +100,21 @@ export default function TaskRow({
         {task.is_done ? '✓' : ''}
       </button>
 
-      <input
+      <textarea
+        ref={taRef}
         className="task-title-input"
+        rows={1}
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={(e) => {
+          setTitle(e.target.value)
+          autoGrow(e.target)
+        }}
         onBlur={saveTitle}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') e.currentTarget.blur()
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault()
+            e.currentTarget.blur()
+          }
         }}
       />
 
@@ -105,7 +124,7 @@ export default function TaskRow({
         onChange={(e) => onAssign(task, e.target.value || null)}
         title="In charge"
       >
-        <option value="">— In charge —</option>
+        <option value="">In charge</option>
         {members.map((m) => (
           <option key={m.id} value={m.id}>
             {m.full_name || m.email}
@@ -134,7 +153,7 @@ export default function TaskRow({
           onChange={handleTagSelect}
           title="Tag"
         >
-          <option value="">— Tag —</option>
+          <option value="">Tag</option>
           {tagOptions.map((tg) => (
             <option key={tg} value={tg}>
               {tg}

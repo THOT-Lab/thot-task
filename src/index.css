@@ -326,9 +326,9 @@ select:focus {
   z-index: 20;
 }
 .topbar-inner {
-  max-width: 1100px;
+  max-width: none;
   margin: 0 auto;
-  padding: 0 1.25rem;
+  padding: 0 1.75rem;
   display: flex;
   align-items: center;
   gap: 1.25rem;
@@ -404,9 +404,9 @@ select:focus {
   background: #c9cce0;
 }
 .content {
-  max-width: 1100px;
+  max-width: none;
   margin: 0 auto;
-  padding: 1.5rem 1.25rem 4rem;
+  padding: 1.5rem 1.75rem 4rem;
 }
 
 /* ---------- Pages ---------- */
@@ -729,6 +729,11 @@ select:focus {
   padding: 0.3rem 0.4rem;
   border-radius: 7px;
   min-width: 0;
+  font: inherit;
+  line-height: 1.4;
+  resize: none;
+  overflow: hidden;
+  display: block;
 }
 .task-title-input:hover {
   border-color: var(--border);
@@ -839,14 +844,14 @@ select:focus {
 /* Colonnes alignées entre la barre de filtres et les lignes */
 .assignee-select,
 .filter-assignee {
-  width: 150px;
+  width: 124px;
   flex: none;
   max-width: none;
 }
 .tag-select,
 .tag-input,
 .filter-tag {
-  width: 120px;
+  width: 96px;
   flex: none;
   max-width: none;
 }
