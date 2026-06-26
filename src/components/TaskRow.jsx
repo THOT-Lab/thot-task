@@ -1,11 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 
-const COLORS = [
-  { value: 'blue', label: '🔵 Bleu' },
-  { value: 'orange', label: '🟠 Orange' },
-  { value: 'red', label: '🔴 Rouge' },
-]
-
 export default function TaskRow({
   num,
   task,
@@ -120,19 +114,12 @@ export default function TaskRow({
         ))}
       </select>
 
-      <select
-        className={`cell-select color-select color-${task.color || 'none'}`}
-        value={task.color || ''}
-        onChange={(e) => onColor(task, e.target.value)}
-        title="Couleur"
-      >
-        <option value="">Couleur</option>
-        {COLORS.map((c) => (
-          <option key={c.value} value={c.value}>
-            {c.label}
-          </option>
-        ))}
-      </select>
+      <button
+        className={`color-dot color-${task.color || 'blue'}`}
+        onClick={() => onColor(task)}
+        title="Couleur (cliquer pour changer)"
+        aria-label="Couleur"
+      />
 
       <button
         className="icon-btn danger"

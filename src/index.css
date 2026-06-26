@@ -888,6 +888,40 @@ select:focus {
   color: #c81e1e;
   border-color: #f6d2d2;
 }
+
+/* Pastille couleur : point minimal, sans texte */
+.color-dot {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.color-dot.color-blue {
+  background: #3b82f6;
+}
+.color-dot.color-orange {
+  background: #f97316;
+}
+.color-dot.color-red {
+  background: #ef4444;
+}
+.color-dot:hover {
+  transform: scale(1.18);
+}
+.color-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: none;
+}
+.color-filter .color-dot.active {
+  transform: scale(1.18);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px #9aa0b4;
+}
 .cell-input {
   font-size: 0.8rem;
   padding: 0.34rem 0.75rem;
@@ -903,11 +937,13 @@ select:focus {
 
 /* ---------- Familles de tâches ---------- */
 .filter-bar {
-  padding: 0.15rem 0.8rem;
+  padding: 0 0.8rem;
+  margin-bottom: -1.2rem;
 }
 .filter-bar .list-toolbar {
   border-bottom: none;
   margin-bottom: 0;
+  padding-bottom: 0;
 }
 .family-head {
   display: flex;
