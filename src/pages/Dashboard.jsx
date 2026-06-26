@@ -20,7 +20,8 @@ export default function Dashboard() {
   const loadTasks = async () => {
     const { data } = await supabase
       .from('tasks')
-      .select('id, title, is_done, project_id, assigned_to, done_at, created_at')
+      .select('id, title, is_done, project_id, assigned_to, position, created_at')
+      .order('position', { ascending: true })
       .order('created_at', { ascending: true })
     setTasks(data ?? [])
     setLoading(false)
@@ -29,11 +30,6 @@ export default function Dashboard() {
   useEffect(() => {
     loadTasks()
   }, [])
-
-  const projectName = useMemo(
-    () => Object.fromEntries(projects.map((p) => [p.id, p.name])),
-    [projects]
-  )
 
   const statsByProject = useMemo(() => {
     const m = {}
@@ -46,13 +42,16 @@ export default function Dashboard() {
     return m
   }, [projects, tasks])
 
+  // Mes tâches (ordre conservé : une tâche cochée ne bouge pas)
   const myTasks = useMemo(
-    () =>
-      tasks
-        .filter((t) => t.assigned_to === user?.id)
-        .sort((a, b) => Number(a.is_done) - Number(b.is_done)),
+    () => tasks.filter((t) => t.assigned_to === user?.id),
     [tasks, user?.id]
   )
+  const myTasksByProject = useMemo(() => {
+    const m = {}
+    for (const t of myTasks) (m[t.project_id] ||= []).push(t)
+    return m
+  }, [myTasks])
 
   const createProject = async (e) => {
     e.preventDefault()
@@ -146,26 +145,36 @@ export default function Dashboard() {
         {myTasks.length === 0 ? (
           <p className="muted">Aucune tâche ne t'est assignée pour le moment.</p>
         ) : (
-          <ul className="task-list flat">
-            {myTasks.map((t) => (
-              <li key={t.id} className={`task-row ${t.is_done ? 'done' : ''}`}>
-                <button
-                  className={`check ${t.is_done ? 'checked' : ''}`}
-                  onClick={() => toggleTask(t)}
-                  aria-label="Cocher"
-                >
-                  {t.is_done ? '✓' : ''}
-                </button>
-                <span className="task-title">{t.title}</span>
-                <button
-                  className="chip chip-link"
-                  onClick={() => navigate(`/project/${t.project_id}`)}
-                >
-                  {projectName[t.project_id] || 'Projet'}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="mytasks-grid">
+            {projects
+              .filter((p) => (myTasksByProject[p.id] || []).length)
+              .map((p) => (
+                <section key={p.id} className="task-table mytasks-box">
+                  <div className="mytasks-head">
+                    <button
+                      className="mytasks-title"
+                      onClick={() => navigate(`/project/${p.id}`)}
+                    >
+                      {p.name}
+                    </button>
+                  </div>
+                  <ul className="task-list">
+                    {myTasksByProject[p.id].map((t) => (
+                      <li key={t.id} className={`task-row ${t.is_done ? 'done' : ''}`}>
+                        <button
+                          className={`check ${t.is_done ? 'checked' : ''}`}
+                          onClick={() => toggleTask(t)}
+                          aria-label="Cocher"
+                        >
+                          {t.is_done ? '✓' : ''}
+                        </button>
+                        <span className="task-title">{t.title}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+          </div>
         )}
       </section>
 

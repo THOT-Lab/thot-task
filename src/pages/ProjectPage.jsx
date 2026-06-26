@@ -30,6 +30,7 @@ export default function ProjectPage() {
   const [notesDraft, setNotesDraft] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
   const [draggedId, setDraggedId] = useState(null)
+  const [draggedFamilyId, setDraggedFamilyId] = useState(null)
   const commentRef = useRef(null)
 
   const growComment = (el) => {
@@ -235,6 +236,27 @@ export default function ProjectPage() {
     loadTasks()
   }
 
+  // Réordonner les familles entre elles (glisser la poignée du titre).
+  const onDropFamily = async (target) => {
+    const srcId = draggedFamilyId
+    setDraggedFamilyId(null)
+    if (!srcId || srcId === target.id) return
+    const ordered = [...families]
+    const from = ordered.findIndex((f) => f.id === srcId)
+    const to = ordered.findIndex((f) => f.id === target.id)
+    if (from < 0 || to < 0) return
+    const [moved] = ordered.splice(from, 1)
+    ordered.splice(to, 0, moved)
+    setFamilies(ordered) // retour visuel immédiat
+    await Promise.all(
+      ordered
+        .map((f, i) => (f.position === i ? null : { id: f.id, i }))
+        .filter(Boolean)
+        .map((u) => supabase.from('task_groups').update({ position: u.i }).eq('id', u.id))
+    )
+    loadFamilies()
+  }
+
   const tasksByFamily = useMemo(() => {
     const m = {}
     for (const f of families) m[f.id] = []
@@ -269,6 +291,11 @@ export default function ProjectPage() {
     onDragStartTask: (t) => setDraggedId(t.id),
     onDragEndTask: () => setDraggedId(null),
     onDropTask,
+  }
+  const familyDnd = {
+    onDragStartFamily: (f) => setDraggedFamilyId(f.id),
+    onDragEndFamily: () => setDraggedFamilyId(null),
+    onDropFamily,
   }
   const taskHandlers = {
     onToggle: toggleTask,
@@ -350,7 +377,7 @@ export default function ProjectPage() {
           <span className="t-num" />
           <span className="t-reorder" />
           <span className="t-check" />
-          <span className="t-title muted small">Filtrer</span>
+          <span className="t-title" />
           <select
             className="cell-select filter-assignee"
             value={filterAssignee}
@@ -388,6 +415,7 @@ export default function ProjectPage() {
           members={members}
           rankById={rankById}
           dnd={dnd}
+          familyDnd={familyDnd}
           taskHandlers={taskHandlers}
           canDelete={families.length > 1}
           onRename={renameFamily}
@@ -440,6 +468,7 @@ function FamilyBox({
   members,
   rankById,
   dnd,
+  familyDnd,
   taskHandlers,
   canDelete,
   onRename,
@@ -447,11 +476,37 @@ function FamilyBox({
   onAddTask,
 }) {
   const [name, setName] = useState(family.name)
+  const [isOver, setIsOver] = useState(false)
   useEffect(() => setName(family.name), [family.name])
 
   return (
-    <section className="task-table family-box">
-      <div className="family-head">
+    <section className={`task-table family-box ${isOver ? 'fam-drag-over' : ''}`}>
+      <div
+        className="family-head"
+        onDragOver={(e) => {
+          e.preventDefault()
+          if (!isOver) setIsOver(true)
+        }}
+        onDragLeave={() => setIsOver(false)}
+        onDrop={(e) => {
+          e.preventDefault()
+          setIsOver(false)
+          familyDnd.onDropFamily?.(family)
+        }}
+      >
+        <span
+          className="drag-handle family-drag"
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.effectAllowed = 'move'
+            familyDnd.onDragStartFamily?.(family)
+          }}
+          onDragEnd={() => familyDnd.onDragEndFamily?.()}
+          title="Glisser pour réordonner les familles"
+          aria-label="Déplacer la famille"
+        >
+          ⠿
+        </span>
         <input
           className="family-name-input"
           value={name}

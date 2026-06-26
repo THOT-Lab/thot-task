@@ -413,7 +413,7 @@ select:focus {
 .page {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.2rem;
 }
 .page-head {
   display: flex;
@@ -673,8 +673,8 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  padding: 0.5rem 0.6rem;
-  border-radius: 10px;
+  padding: 0.28rem 0.6rem;
+  border-radius: 9px;
   transition: background 0.12s ease;
 }
 .task-row:hover {
@@ -794,9 +794,9 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  padding: 0.5rem 0.6rem;
-  margin-top: 0.15rem;
-  border-radius: 10px;
+  padding: 0.28rem 0.6rem;
+  margin-top: 0.1rem;
+  border-radius: 9px;
   transition: background 0.12s ease;
 }
 .add-task-row:hover {
@@ -833,7 +833,7 @@ select:focus {
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 0.6rem 0.8rem 0.5rem;
+  padding: 0.35rem 0.8rem 0.3rem;
   box-shadow: var(--shadow);
 }
 .list-toolbar {
@@ -948,8 +948,14 @@ select:focus {
 .family-head {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.3rem 0.5rem 0.5rem;
+  gap: 0.5rem;
+  padding: 0.2rem 0.4rem 0.3rem;
+}
+.family-drag {
+  font-size: 1.05rem;
+}
+.family-box.fam-drag-over {
+  box-shadow: var(--shadow), inset 0 0 0 2px var(--accent);
 }
 .family-name-input {
   flex: 1;
@@ -990,6 +996,32 @@ select:focus {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent-dark);
+}
+
+/* ---------- Dashboard : mes tâches par projet ---------- */
+.mytasks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+.mytasks-head {
+  padding: 0.2rem 0.4rem 0.35rem;
+}
+.mytasks-title {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+  padding: 0.1rem 0.2rem;
+}
+.mytasks-title:hover {
+  color: var(--accent);
+}
+.mytasks-box .task-title {
+  overflow-wrap: anywhere;
 }
 
 /* ---------- Mes tâches (flat) ---------- */
