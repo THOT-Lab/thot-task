@@ -232,20 +232,21 @@ export default function ProjectPage() {
     loadTasks()
   }
 
-  // Réordonner les familles entre elles (glisser la poignée du titre).
+  // Réordonner les familles : la famille tirée s'insère AVANT la famille survolée
+  // (la ligne d'insertion apparaît donc juste au-dessus de la cible).
   const onDropFamily = async (target) => {
     const srcId = draggedFamilyId
     setDraggedFamilyId(null)
     if (!srcId || srcId === target.id) return
-    const ordered = [...families]
-    const from = ordered.findIndex((f) => f.id === srcId)
-    const to = ordered.findIndex((f) => f.id === target.id)
-    if (from < 0 || to < 0) return
-    const [moved] = ordered.splice(from, 1)
-    ordered.splice(to, 0, moved)
-    setFamilies(ordered) // retour visuel immédiat
+    const moved = families.find((f) => f.id === srcId)
+    if (!moved) return
+    const without = families.filter((f) => f.id !== srcId)
+    const to = without.findIndex((f) => f.id === target.id)
+    if (to < 0) return
+    without.splice(to, 0, moved)
+    setFamilies(without) // retour visuel immédiat
     await Promise.all(
-      ordered
+      without
         .map((f, i) => (f.position === i ? null : { id: f.id, i }))
         .filter(Boolean)
         .map((u) => supabase.from('task_groups').update({ position: u.i }).eq('id', u.id))
@@ -283,10 +284,12 @@ export default function ProjectPage() {
     )
 
   const pending = tasks.filter((t) => !t.is_done).length
+  const familyDragging = draggedFamilyId != null
   const dnd = {
     onDragStartTask: (t) => setDraggedId(t.id),
     onDragEndTask: () => setDraggedId(null),
     onDropTask,
+    familyDragging,
   }
   const familyDnd = {
     onDragStartFamily: (f) => setDraggedFamilyId(f.id),
@@ -412,6 +415,7 @@ export default function ProjectPage() {
           rankById={rankById}
           dnd={dnd}
           familyDnd={familyDnd}
+          familyDragging={familyDragging}
           taskHandlers={taskHandlers}
           canDelete={families.length > 1}
           onRename={renameFamily}
@@ -465,6 +469,7 @@ function FamilyBox({
   rankById,
   dnd,
   familyDnd,
+  familyDragging,
   taskHandlers,
   canDelete,
   onRename,
@@ -473,28 +478,36 @@ function FamilyBox({
 }) {
   const [name, setName] = useState(family.name)
   const [isOver, setIsOver] = useState(false)
+  const boxRef = useRef(null)
   useEffect(() => setName(family.name), [family.name])
 
   return (
-    <section className={`task-table family-box ${isOver ? 'fam-drag-over' : ''}`}>
-      <div
-        className="family-head"
-        onDragOver={(e) => {
-          e.preventDefault()
-          if (!isOver) setIsOver(true)
-        }}
-        onDragLeave={() => setIsOver(false)}
-        onDrop={(e) => {
-          e.preventDefault()
-          setIsOver(false)
-          familyDnd.onDropFamily?.(family)
-        }}
-      >
+    <section
+      ref={boxRef}
+      className={`task-table family-box ${isOver ? 'fam-drag-over' : ''}`}
+      onDragOver={(e) => {
+        if (!familyDragging) return
+        e.preventDefault()
+        if (!isOver) setIsOver(true)
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget.contains(e.relatedTarget)) return
+        setIsOver(false)
+      }}
+      onDrop={(e) => {
+        if (!familyDragging) return
+        e.preventDefault()
+        setIsOver(false)
+        familyDnd.onDropFamily?.(family)
+      }}
+    >
+      <div className="family-head">
         <span
           className="drag-handle family-drag"
           draggable
           onDragStart={(e) => {
             e.dataTransfer.effectAllowed = 'move'
+            if (boxRef.current) e.dataTransfer.setDragImage(boxRef.current, 30, 20)
             familyDnd.onDragStartFamily?.(family)
           }}
           onDragEnd={() => familyDnd.onDragEndFamily?.()}

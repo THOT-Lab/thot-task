@@ -12,6 +12,7 @@ export default function TaskRow({
   onDragStartTask,
   onDragEndTask,
   onDropTask,
+  familyDragging,
 }) {
   const [title, setTitle] = useState(task.title)
   const [isOver, setIsOver] = useState(false)
@@ -49,12 +50,14 @@ export default function TaskRow({
       ref={liRef}
       className={`task-row ${task.is_done ? 'done' : ''} ${isOver ? 'drag-over' : ''}`}
       onDragOver={(e) => {
+        if (familyDragging) return
         e.preventDefault()
         e.dataTransfer.dropEffect = 'move'
         if (!isOver) setIsOver(true)
       }}
       onDragLeave={() => setIsOver(false)}
       onDrop={(e) => {
+        if (familyDragging) return
         e.preventDefault()
         setIsOver(false)
         onDropTask?.(task)

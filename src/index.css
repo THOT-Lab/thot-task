@@ -955,7 +955,10 @@ select:focus {
   font-size: 1.05rem;
 }
 .family-box.fam-drag-over {
-  box-shadow: var(--shadow), inset 0 0 0 2px var(--accent);
+  box-shadow: var(--shadow), inset 0 3px 0 0 var(--accent);
+}
+.family-box.fam-drag-over .family-head {
+  padding-top: 0.45rem;
 }
 .family-name-input {
   flex: 1;
