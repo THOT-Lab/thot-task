@@ -1,22 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 
+const COLORS = [
+  { value: 'blue', label: '🔵 Bleu' },
+  { value: 'orange', label: '🟠 Orange' },
+  { value: 'red', label: '🔴 Rouge' },
+]
+
 export default function TaskRow({
   num,
   task,
   members,
-  tagOptions = [],
   onToggle,
   onRename,
   onAssign,
-  onTag,
+  onColor,
   onDelete,
   onDragStartTask,
   onDragEndTask,
   onDropTask,
 }) {
   const [title, setTitle] = useState(task.title)
-  const [creatingTag, setCreatingTag] = useState(false)
-  const [newTag, setNewTag] = useState('')
   const [isOver, setIsOver] = useState(false)
   const liRef = useRef(null)
   const taRef = useRef(null)
@@ -30,7 +33,6 @@ export default function TaskRow({
   useEffect(() => {
     setTitle(task.title)
   }, [task.title])
-
   useEffect(() => {
     autoGrow(taRef.current)
   }, [title])
@@ -41,26 +43,9 @@ export default function TaskRow({
     else setTitle(task.title)
   }
 
-  const handleTagSelect = (e) => {
-    const val = e.target.value
-    if (val === '__new__') {
-      setNewTag('')
-      setCreatingTag(true)
-      return
-    }
-    onTag(task, val)
-  }
-
-  const saveNewTag = () => {
-    const clean = newTag.trim()
-    setCreatingTag(false)
-    if (clean && clean !== (task.tag || '')) onTag(task, clean)
-  }
-
   const handleDragStart = (e) => {
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', task.id)
-    // Fantôme de glissement = la ligne entière
     if (liRef.current) e.dataTransfer.setDragImage(liRef.current, 24, 16)
     onDragStartTask?.(task)
   }
@@ -88,7 +73,7 @@ export default function TaskRow({
         draggable
         onDragStart={handleDragStart}
         onDragEnd={() => onDragEndTask?.()}
-        title="Glisser pour déplacer (priorité)"
+        title="Glisser pour déplacer (priorité / famille)"
         aria-label="Déplacer la tâche"
       >
         ⠿
@@ -135,36 +120,19 @@ export default function TaskRow({
         ))}
       </select>
 
-      {creatingTag ? (
-        <input
-          className="cell-input tag-input"
-          autoFocus
-          value={newTag}
-          onChange={(e) => setNewTag(e.target.value)}
-          onBlur={saveNewTag}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') e.currentTarget.blur()
-            if (e.key === 'Escape') setCreatingTag(false)
-          }}
-          placeholder="Nom du tag…"
-          title="Nouveau tag"
-        />
-      ) : (
-        <select
-          className={`cell-select tag-select ${task.tag ? 'has-value' : ''}`}
-          value={task.tag || ''}
-          onChange={handleTagSelect}
-          title="Tag"
-        >
-          <option value="">Tag</option>
-          {tagOptions.map((tg) => (
-            <option key={tg} value={tg}>
-              {tg}
-            </option>
-          ))}
-          <option value="__new__">➕ Nouveau tag…</option>
-        </select>
-      )}
+      <select
+        className={`cell-select color-select color-${task.color || 'none'}`}
+        value={task.color || ''}
+        onChange={(e) => onColor(task, e.target.value)}
+        title="Couleur"
+      >
+        <option value="">Couleur</option>
+        {COLORS.map((c) => (
+          <option key={c.value} value={c.value}>
+            {c.label}
+          </option>
+        ))}
+      </select>
 
       <button
         className="icon-btn danger"

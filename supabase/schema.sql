@@ -65,6 +65,7 @@ create table if not exists public.tasks (
   group_id    uuid references public.task_groups(id) on delete set null,
   title       text not null,
   tag         text not null default '',
+  color       text not null default '',
   assigned_to uuid references public.profiles(id) on delete set null,
   is_done     boolean not null default false,
   done_at     timestamptz,
@@ -76,6 +77,7 @@ create table if not exists public.tasks (
 
 -- Ajout sûr de la colonne tag pour les bases déjà créées avant cette version.
 alter table public.tasks add column if not exists tag text not null default '';
+alter table public.tasks add column if not exists color text not null default '';
 
 create index if not exists tasks_project_idx   on public.tasks(project_id);
 create index if not exists tasks_assigned_idx  on public.tasks(assigned_to);

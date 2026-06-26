@@ -13,6 +13,7 @@ export default function ProjectPage() {
   const { reload: reloadProjects } = useProjects()
 
   const [project, setProject] = useState(null)
+  const [families, setFamilies] = useState([])
   const [tasks, setTasks] = useState([])
   const [members, setMembers] = useState([])
   const [invitations, setInvitations] = useState([])
@@ -24,7 +25,7 @@ export default function ProjectPage() {
   const [showMembers, setShowMembers] = useState(false)
 
   const [filterAssignee, setFilterAssignee] = useState('')
-  const [filterTag, setFilterTag] = useState('')
+  const [filterColor, setFilterColor] = useState('')
   const [opError, setOpError] = useState('')
   const [notesDraft, setNotesDraft] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
@@ -47,15 +48,50 @@ export default function ProjectPage() {
     setNameDraft(data.name)
   }, [id])
 
-  const loadTasks = useCallback(async () => {
+  const fetchTasks = useCallback(async () => {
     const { data } = await supabase
       .from('tasks')
       .select('*')
       .eq('project_id', id)
       .order('position', { ascending: true })
       .order('created_at', { ascending: true })
-    setTasks(data ?? [])
+    return data ?? []
   }, [id])
+
+  const loadTasks = useCallback(async () => {
+    setTasks(await fetchTasks())
+  }, [fetchTasks])
+
+  // Charge les familles ; en crée une par défaut s'il n'y en a pas, et rattache
+  // les tâches sans famille à la première famille (pour qu'aucune ne soit invisible).
+  const loadFamilies = useCallback(async () => {
+    const { data } = await supabase
+      .from('task_groups')
+      .select('*')
+      .eq('project_id', id)
+      .order('position', { ascending: true })
+      .order('created_at', { ascending: true })
+    let fams = data ?? []
+    let tks = await fetchTasks()
+
+    if (fams.length === 0) {
+      const { data: nf } = await supabase
+        .from('task_groups')
+        .insert({ project_id: id, name: 'Tâches', position: 0 })
+        .select()
+        .single()
+      if (nf) fams = [nf]
+    }
+    if (fams.length) {
+      const orphans = tks.filter((t) => !t.group_id).map((t) => t.id)
+      if (orphans.length) {
+        await supabase.from('tasks').update({ group_id: fams[0].id }).in('id', orphans)
+        tks = await fetchTasks()
+      }
+    }
+    setFamilies(fams)
+    setTasks(tks)
+  }, [id, fetchTasks])
 
   const loadMembers = useCallback(async () => {
     const { data } = await supabase
@@ -74,15 +110,13 @@ export default function ProjectPage() {
   useEffect(() => {
     setLoading(true)
     setNotFound(false)
-    Promise.all([loadProject(), loadTasks(), loadMembers()]).then(() => setLoading(false))
-  }, [id, loadProject, loadTasks, loadMembers])
+    Promise.all([loadProject(), loadFamilies(), loadMembers()]).then(() => setLoading(false))
+  }, [id, loadProject, loadFamilies, loadMembers])
 
-  // Initialise le commentaire quand on entre dans un projet (sans écraser la saisie en cours).
   useEffect(() => {
     setNotesDraft(project?.notes || '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id])
-
   useEffect(() => {
     growComment(commentRef.current)
   }, [notesDraft])
@@ -106,7 +140,6 @@ export default function ProjectPage() {
     const { error } = await supabase.from('projects').update({ notes: notesDraft }).eq('id', id)
     setNotesSaving(false)
     if (error) {
-      console.error('[commentaire]', error)
       setOpError(error.message)
       return
     }
@@ -114,28 +147,55 @@ export default function ProjectPage() {
     setProject((p) => ({ ...p, notes: notesDraft }))
   }
 
+  // --- Familles ---
+  const addFamily = async () => {
+    await supabase
+      .from('task_groups')
+      .insert({ project_id: id, name: 'Nouvelle famille', position: families.length })
+    loadFamilies()
+  }
+  const renameFamily = async (fam, name) => {
+    await supabase.from('task_groups').update({ name }).eq('id', fam.id)
+    loadFamilies()
+  }
+  const deleteFamily = async (fam) => {
+    if (families.length <= 1) {
+      alert('Il doit rester au moins une famille de tâches.')
+      return
+    }
+    const target = families.find((f) => f.id !== fam.id)
+    if (
+      !confirm(
+        `Supprimer la famille « ${fam.name} » ? Ses tâches seront déplacées dans « ${target.name} ».`
+      )
+    )
+      return
+    await supabase.from('tasks').update({ group_id: target.id }).eq('group_id', fam.id)
+    await supabase.from('task_groups').delete().eq('id', fam.id)
+    loadFamilies()
+  }
+
   // --- Tâches ---
-  // Exécute une opération et rend toute erreur visible (plus de échec silencieux).
   const mutate = async (query) => {
     const { error } = await query
     if (error) {
-      console.error('[tâche]', error)
       setOpError(error.message)
       return
     }
     setOpError('')
     loadTasks()
   }
-
-  const addTask = (title) => {
+  const addTask = (familyId, title) => {
     const v = (title || '').trim()
     if (!v) return
+    const count = tasks.filter((t) => t.group_id === familyId).length
     return mutate(
       supabase.from('tasks').insert({
         project_id: id,
+        group_id: familyId,
         title: v,
         created_by: user.id,
-        position: tasks.length,
+        position: count,
       })
     )
   }
@@ -145,60 +205,52 @@ export default function ProjectPage() {
     mutate(supabase.from('tasks').update({ title }).eq('id', t.id))
   const assignTask = (t, uid) =>
     mutate(supabase.from('tasks').update({ assigned_to: uid }).eq('id', t.id))
-  const tagTask = (t, tag) => mutate(supabase.from('tasks').update({ tag }).eq('id', t.id))
+  const colorTask = (t, color) =>
+    mutate(supabase.from('tasks').update({ color }).eq('id', t.id))
   const deleteTask = (t) => {
     if (!confirm("Supprimer définitivement cette tâche ? (Pour garder l'historique, coche-la plutôt.)"))
       return
     return mutate(supabase.from('tasks').delete().eq('id', t.id))
   }
-  // Glisser-déposer pour réordonner les tâches (priorité). On dépose la tâche
-  // tirée à l'emplacement de la tâche survolée, puis on persiste les positions.
+
+  // Glisser-déposer : la tâche tirée prend la famille + la place de la tâche survolée.
   const onDropTask = async (target) => {
     const srcId = draggedId
     setDraggedId(null)
     if (!srcId || srcId === target.id) return
-    const ordered = [...tasks]
-    const from = ordered.findIndex((t) => t.id === srcId)
-    const to = ordered.findIndex((t) => t.id === target.id)
-    if (from < 0 || to < 0) return
-    const [moved] = ordered.splice(from, 1)
-    ordered.splice(to, 0, moved)
-    setTasks(ordered) // retour visuel immédiat
-    const updates = ordered
-      .map((t, i) => (t.position === i ? null : { id: t.id, i }))
-      .filter(Boolean)
-    await Promise.all(
-      updates.map((u) => supabase.from('tasks').update({ position: u.i }).eq('id', u.id))
-    )
+    const fam = target.group_id
+    const list = tasks.filter((t) => t.group_id === fam && t.id !== srcId)
+    const idx = list.findIndex((t) => t.id === target.id)
+    const src = tasks.find((t) => t.id === srcId)
+    if (idx < 0 || !src) return
+    list.splice(idx, 0, src)
+    await Promise.all([
+      supabase.from('tasks').update({ group_id: fam }).eq('id', srcId),
+      ...list.map((t, i) => supabase.from('tasks').update({ position: i }).eq('id', t.id)),
+    ])
     loadTasks()
   }
 
-  const tagOptions = useMemo(
-    () =>
-      Array.from(new Set(tasks.map((t) => (t.tag || '').trim()).filter(Boolean))).sort((a, b) =>
-        a.localeCompare(b)
-      ),
-    [tasks]
-  )
+  const tasksByFamily = useMemo(() => {
+    const m = {}
+    for (const f of families) m[f.id] = []
+    for (const t of tasks) if (m[t.group_id]) m[t.group_id].push(t)
+    for (const k in m)
+      m[k].sort(
+        (a, b) => a.position - b.position || new Date(a.created_at) - new Date(b.created_at)
+      )
+    return m
+  }, [families, tasks])
 
-  // Rang général (position absolue dans la liste complète), conservé même filtré.
   const rankById = useMemo(() => {
     const m = {}
-    tasks.forEach((t, i) => {
-      m[t.id] = i + 1
-    })
+    for (const f of families) (tasksByFamily[f.id] || []).forEach((t, i) => (m[t.id] = i + 1))
     return m
-  }, [tasks])
+  }, [families, tasksByFamily])
 
-  const visibleTasks = useMemo(
-    () =>
-      tasks.filter(
-        (t) =>
-          (!filterAssignee || t.assigned_to === filterAssignee) &&
-          (!filterTag || (t.tag || '') === filterTag)
-      ),
-    [tasks, filterAssignee, filterTag]
-  )
+  const matchesFilter = (t) =>
+    (!filterAssignee || t.assigned_to === filterAssignee) &&
+    (!filterColor || (t.color || '') === filterColor)
 
   if (loading) return <div className="page muted">Chargement du projet…</div>
   if (notFound)
@@ -209,6 +261,18 @@ export default function ProjectPage() {
     )
 
   const pending = tasks.filter((t) => !t.is_done).length
+  const dnd = {
+    onDragStartTask: (t) => setDraggedId(t.id),
+    onDragEndTask: () => setDraggedId(null),
+    onDropTask,
+  }
+  const taskHandlers = {
+    onToggle: toggleTask,
+    onRename: renameTask,
+    onAssign: assignTask,
+    onColor: colorTask,
+    onDelete: deleteTask,
+  }
 
   return (
     <div className="page">
@@ -268,19 +332,21 @@ export default function ProjectPage() {
         </div>
       </div>
 
-      <div className="task-table">
-        {opError && (
-          <div className="alert alert-error op-error">
-            ⚠️ {opError}
-            {/(does not exist|column)/i.test(opError) &&
-              ' — une colonne manque dans la base : exécute la commande SQL fournie dans Supabase.'}
-          </div>
-        )}
+      {opError && (
+        <div className="alert alert-error op-error">
+          ⚠️ {opError}
+          {/(does not exist|column)/i.test(opError) &&
+            ' — une colonne manque dans la base : exécute la commande SQL fournie.'}
+        </div>
+      )}
+
+      {/* Filtres globaux, alignés au-dessus des colonnes */}
+      <div className="task-table filter-bar">
         <div className="list-toolbar">
           <span className="t-num" />
           <span className="t-reorder" />
           <span className="t-check" />
-          <span className="t-title muted small">Tâche</span>
+          <span className="t-title muted small">Filtrer</span>
           <select
             className="cell-select filter-assignee"
             value={filterAssignee}
@@ -295,48 +361,40 @@ export default function ProjectPage() {
             ))}
           </select>
           <select
-            className="cell-select filter-tag"
-            value={filterTag}
-            onChange={(e) => setFilterTag(e.target.value)}
-            title="Filtrer par tag"
+            className={`cell-select filter-color color-${filterColor || 'none'}`}
+            value={filterColor}
+            onChange={(e) => setFilterColor(e.target.value)}
+            title="Filtrer par couleur"
           >
-            <option value="">Tag : tous</option>
-            {tagOptions.map((tg) => (
-              <option key={tg} value={tg}>
-                {tg}
-              </option>
-            ))}
+            <option value="">Couleur : toutes</option>
+            <option value="blue">🔵 Bleu</option>
+            <option value="orange">🟠 Orange</option>
+            <option value="red">🔴 Rouge</option>
           </select>
           <span className="t-del" />
         </div>
-
-        <ul className="task-list">
-          {visibleTasks.map((t) => (
-            <TaskRow
-              key={t.id}
-              num={rankById[t.id]}
-              task={t}
-              members={members}
-              tagOptions={tagOptions}
-              onToggle={toggleTask}
-              onRename={renameTask}
-              onAssign={assignTask}
-              onTag={tagTask}
-              onDelete={deleteTask}
-              onDragStartTask={(t) => setDraggedId(t.id)}
-              onDragEndTask={() => setDraggedId(null)}
-              onDropTask={onDropTask}
-            />
-          ))}
-          {visibleTasks.length === 0 && (
-            <li className="muted empty-row">
-              {tasks.length === 0 ? 'Aucune tâche pour le moment.' : 'Aucune tâche pour ce filtre.'}
-            </li>
-          )}
-        </ul>
-
-        <AddTaskInline onAdd={addTask} />
       </div>
+
+      {families.map((fam) => (
+        <FamilyBox
+          key={fam.id}
+          family={fam}
+          tasks={(tasksByFamily[fam.id] || []).filter(matchesFilter)}
+          totalCount={(tasksByFamily[fam.id] || []).length}
+          members={members}
+          rankById={rankById}
+          dnd={dnd}
+          taskHandlers={taskHandlers}
+          canDelete={families.length > 1}
+          onRename={renameFamily}
+          onDelete={deleteFamily}
+          onAddTask={addTask}
+        />
+      ))}
+
+      <button className="add-family" onClick={addFamily}>
+        <span className="add-card-plus">+</span> Ajouter une famille de tâches
+      </button>
 
       <section className="comment-card">
         <div className="comment-head">
@@ -368,6 +426,70 @@ export default function ProjectPage() {
         </Modal>
       )}
     </div>
+  )
+}
+
+function FamilyBox({
+  family,
+  tasks,
+  totalCount,
+  members,
+  rankById,
+  dnd,
+  taskHandlers,
+  canDelete,
+  onRename,
+  onDelete,
+  onAddTask,
+}) {
+  const [name, setName] = useState(family.name)
+  useEffect(() => setName(family.name), [family.name])
+
+  return (
+    <section className="task-table family-box">
+      <div className="family-head">
+        <input
+          className="family-name-input"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => {
+            const v = name.trim()
+            if (v && v !== family.name) onRename(family, v)
+            else setName(family.name)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur()
+          }}
+          title="Cliquer pour renommer la famille"
+        />
+        <span className="muted small">{totalCount}</span>
+        {canDelete && (
+          <button
+            className="icon-btn danger"
+            onClick={() => onDelete(family)}
+            title="Supprimer la famille"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      <ul className="task-list">
+        {tasks.map((t) => (
+          <TaskRow
+            key={t.id}
+            num={rankById[t.id]}
+            task={t}
+            members={members}
+            {...taskHandlers}
+            {...dnd}
+          />
+        ))}
+        {tasks.length === 0 && <li className="empty-row muted">Aucune tâche.</li>}
+      </ul>
+
+      <AddTaskInline onAdd={(title) => onAddTask(family.id, title)} />
+    </section>
   )
 }
 
