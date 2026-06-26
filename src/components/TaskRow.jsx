@@ -114,12 +114,17 @@ export default function TaskRow({
         ))}
       </select>
 
-      <button
-        className={`color-dot color-${task.color || 'blue'}`}
-        onClick={() => onColor(task)}
-        title="Couleur (cliquer pour changer)"
-        aria-label="Couleur"
-      />
+      <select
+        className={`cell-select color-select color-${task.color || 'none'}`}
+        value={task.color || ''}
+        onChange={(e) => onColor(task, e.target.value)}
+        title="Couleur"
+      >
+        <option value="">—</option>
+        <option value="blue">🔵</option>
+        <option value="orange">🟠</option>
+        <option value="red">🔴</option>
+      </select>
 
       <button
         className="icon-btn danger"

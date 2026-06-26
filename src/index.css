@@ -865,7 +865,7 @@ select:focus {
 }
 .color-select,
 .filter-color {
-  width: 116px;
+  width: 64px;
   flex: none;
   max-width: none;
 }

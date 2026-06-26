@@ -206,12 +206,8 @@ export default function ProjectPage() {
     mutate(supabase.from('tasks').update({ title }).eq('id', t.id))
   const assignTask = (t, uid) =>
     mutate(supabase.from('tasks').update({ assigned_to: uid }).eq('id', t.id))
-  // Clic sur la pastille → couleur suivante (bleu → orange → rouge → bleu).
-  const colorTask = (t) => {
-    const order = ['blue', 'orange', 'red']
-    const next = order[(order.indexOf(t.color || 'blue') + 1) % order.length]
-    return mutate(supabase.from('tasks').update({ color: next }).eq('id', t.id))
-  }
+  const colorTask = (t, color) =>
+    mutate(supabase.from('tasks').update({ color }).eq('id', t.id))
   const deleteTask = (t) => {
     if (!confirm("Supprimer définitivement cette tâche ? (Pour garder l'historique, coche-la plutôt.)"))
       return
@@ -276,7 +272,7 @@ export default function ProjectPage() {
 
   const matchesFilter = (t) =>
     (!filterAssignee || t.assigned_to === filterAssignee) &&
-    (!filterColor || (t.color || 'blue') === filterColor)
+    (!filterColor || (t.color || '') === filterColor)
 
   if (loading) return <div className="page muted">Chargement du projet…</div>
   if (notFound)
@@ -391,17 +387,17 @@ export default function ProjectPage() {
               </option>
             ))}
           </select>
-          <div className="color-filter">
-            {['blue', 'orange', 'red'].map((c) => (
-              <button
-                key={c}
-                className={`color-dot color-${c} ${filterColor === c ? 'active' : ''}`}
-                onClick={() => setFilterColor(filterColor === c ? '' : c)}
-                title={`Filtrer : ${c}`}
-                aria-label={`Filtrer ${c}`}
-              />
-            ))}
-          </div>
+          <select
+            className={`cell-select filter-color color-${filterColor || 'none'}`}
+            value={filterColor}
+            onChange={(e) => setFilterColor(e.target.value)}
+            title="Filtrer par couleur"
+          >
+            <option value="">—</option>
+            <option value="blue">🔵</option>
+            <option value="orange">🟠</option>
+            <option value="red">🔴</option>
+          </select>
           <span className="t-del" />
         </div>
       </div>
